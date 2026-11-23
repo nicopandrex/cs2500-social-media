@@ -12,6 +12,7 @@ users_df.to_sql("users", conn, if_exists = "replace")
 followers_df.to_sql("followers", conn, if_exists = "replace")
 posts_df.to_sql("posts", conn, if_exists = "replace" )
 
+conn.commit()
 conn.close()
 
 
