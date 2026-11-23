@@ -54,7 +54,9 @@ _________________MENU___________________
         print(options)
         selection = input("Input Selection (1-6): ").strip()
         match selection:
-            case "1": pass   
+            case "1":
+                view_info(username)
+                input("Press Enter to return to the menu...")
             case "2": pass  
             case "3": pass   
             case "4": pass   
@@ -65,6 +67,42 @@ _________________MENU___________________
                 print("\nInvalid Selection")
 
 
+
+def view_info(user_name):
+    query = "SELECT * FROM users WHERE username = ?"
+    conn = sqlite3.connect("social_media.db")
+    
+    user_info = conn.execute(query,(user_name,)).fetchall()
+    
+    user_id = user_info[0][1]
+    email = user_info[0][2]
+    username = user_info[0][3]
+    password = user_info[0][4]
+    account_created = user_info[0][5]
+    first_name = user_info[0][6]
+    last_name = user_info[0][7]
+    birth_date = user_info[0][8]
+    
+    info_printable = f"""
+_________________INFO___________________
+ID: {user_id}
+Email: {email}
+Username: {username}
+Password: {password}
+Account Creation Date: {account_created}
+First Name: {first_name}
+Last Name: {last_name}
+Birth Date: {birth_date}
+"""
+    print(info_printable)
+    
+    
+    
+
+
+
+
+#run loop
 login = Login()
 
 while True:
