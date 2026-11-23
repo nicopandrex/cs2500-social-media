@@ -1,10 +1,10 @@
 import sqlite3
 
-birth_dates = ["10/18/1999", "8/19/1998", "9/29/2001", "11/26/1995","10/22/2002", "12/22/1999", "10/5/2000", "1/3/2003",]
+birth_dates = ["10/18/1999", "8/19/1998", "9/29/2001", "11/26/1995","10/22/2002", "12/22/1999", "10/5/2000", "1/3/2003","5/16/2006"]
 
 conn = sqlite3.connect("social_media.db")
 
-# conn.execute("ALTER TABLE users ADD birth_date TEXT")
+conn.execute("ALTER TABLE users ADD birth_date TEXT")
 
 users = conn.execute(
     "SELECT user_id FROM users ORDER BY user_id"

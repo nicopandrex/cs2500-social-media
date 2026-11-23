@@ -7,3 +7,4 @@ user_id,email_id,username,password,account_created,first_name,last_name
 6,mpierson@yahoo.com,maxpierson,MaxPierson%,3/9/2016,Max,Pierson
 7,002brice_thomas@gmail.com,002bricethomas,BriceThomas$,3/3/2020,Brice,Thomas
 8,lward@icloud.com,lward,Lward!!!,7/5/2015,Liberty,Ward
+9,test@test.com,test,123,11/23/26,john,doe
