@@ -1,5 +1,6 @@
 import sqlite3
 import pwinput
+from datetime import datetime
 
 
 
@@ -40,34 +41,6 @@ class Login:
 
 
 
-def menu(username):
-    options = """
-_________________MENU___________________
-1. View Info
-2. Update Info
-3. View Posts
-4. Publish Post
-5. View Followers and Following
-6. Log Out
-"""
-    while True:
-        print(options)
-        selection = input("Input Selection (1-6): ").strip()
-        match selection:
-            case "1":
-                view_info(username)
-                input("Press Enter to return to the menu...")
-            case "2": pass  
-            case "3": pass   
-            case "4": pass   
-            case "5": pass   
-            case "6":
-                return
-            case _:
-                print("\nInvalid Selection")
-
-
-
 def view_info(user_name):
     query = "SELECT * FROM users WHERE username = ?"
     conn = sqlite3.connect("social_media.db")
@@ -88,7 +61,6 @@ _________________INFO___________________
 ID: {user_id}
 Email: {email}
 Username: {username}
-Password: {password}
 Account Creation Date: {account_created}
 First Name: {first_name}
 Last Name: {last_name}
@@ -97,16 +69,153 @@ Birth Date: {birth_date}
     print(info_printable)
     
     
+def update_info(user_name):
+    conn = sqlite3.connect("social_media.db")
+
+    def save(column, value):
+        conn.execute(f"UPDATE users SET {column} = ? WHERE username = ?", (value, user_name))
+        conn.commit()
+
+    while True:
+        print("""
+_________________UPDATE INFO____________
+1. Username
+2. Password
+3. Email
+4. First Name
+5. Last Name
+6. Birth Date
+7. Back to Menu
+""")
+        choice = input("Input Selection (1-7): ").strip()
+
+        match choice:
+            case "1":
+                new_name = input("New username: ").strip()
+                if not new_name:
+                    print("Username cannot be empty.")
+                elif new_name == user_name:
+                    print("That is already your username.")
+                elif conn.execute("SELECT 1 FROM users WHERE username = ?", (new_name,)).fetchone():
+                    print("That username is already taken.")
+                else:
+                    save("username", new_name)
+                    user_name = new_name
+                    print("Username updated.")
+            case "2":
+                current = pwinput.pwinput(prompt="Current password: ")
+                if not conn.execute("SELECT 1 FROM users WHERE username = ? AND password = ?",
+                                    (user_name, current)).fetchone():
+                    print("Incorrect password.")
+                    continue
+                new_pass = pwinput.pwinput(prompt="New password: ")
+                if not new_pass:
+                    print("Password cannot be empty.")
+                elif new_pass != pwinput.pwinput(prompt="Confirm new password: "):
+                    print("Passwords do not match.")
+                else:
+                    save("password", new_pass)
+                    print("Password updated.")
+            case "3":
+                email = input("New email: ").strip()
+                if "@" not in email or "." not in email:
+                    print("Please enter a valid email.")
+                else:
+                    save("email_id", email)
+                    print("Email updated.")
+            case "4":
+                first = input("New first name: ").strip()
+                if first:
+                    save("first_name", first)
+                    print("First name updated.")
+                else:
+                    print("First name cannot be empty.")
+            case "5":
+                last = input("New last name: ").strip()
+                if last:
+                    save("last_name", last)
+                    print("Last name updated.")
+                else:
+                    print("Last name cannot be empty.")
+            case "6":
+                raw = input("New birth date (MM/DD/YYYY): ").strip()
+                try:
+                    d = datetime.strptime(raw, "%m/%d/%Y")
+                except ValueError:
+                    print("Invalid date. Use MM/DD/YYYY.")
+                    continue
+                if d > datetime.now():
+                    print("Birth date cannot be in the future.")
+                else:
+                    save("birth_date", f"{d.month}/{d.day}/{d.year}")
+                    print("Birth date updated.")
+            case "7":
+                conn.close()
+                return user_name
+            case _:
+                print("\nInvalid Selection")
+                
+                
+                
+def view_posts(user_name):
+    
+    conn = sqlite3.connect("social_media.db")
+    
+    user_id_query = "SELECT user_id FROM users WHERE username = ?"
+    
+    user_id = conn.execute(user_id_query,(user_name,)).fetchone()[0]
+
+    posts_query = "SELECT post, posted_date FROM posts WHERE user_id = ?"
+
+    posts = conn.execute(posts_query, (user_id,)).fetchall()
+    conn.close()
+
+    print("\n______________YOUR POSTS____________")
+    if not posts:
+        print("You have no posts yet.")
+    for post in posts:
+        print(f"\nDate: {post[1]}\nPost: {post[0]}")
+        
     
 
 
+
+
+def menu(user_name):
+    options = """
+_________________MENU___________________
+1. View Info
+2. Update Info
+3. View Posts
+4. Publish Post
+5. View Followers and Following
+6. Log Out
+"""
+    while True:
+        print(options)
+        selection = input("Input Selection (1-6): ").strip()
+        match selection:
+            case "1":
+                view_info(user_name)
+                input("Press Enter to return to the menu...")
+            case "2":
+                user_name = update_info(user_name)
+            case "3": 
+                view_posts(user_name)   
+                input("Press Enter to return to the menu...")
+            case "4": pass   
+            case "5": pass   
+            case "6":
+                return
+            case _:
+                print("\nInvalid Selection")
 
 
 #run loop
 login = Login()
 
 while True:
-    username = login.login_screen()
-    menu(username)
+    user_name = login.login_screen()
+    menu(user_name)
     print("Logged out.\n")
 
