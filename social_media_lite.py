@@ -177,7 +177,58 @@ def view_posts(user_name):
         print(f"\nDate: {post[1]}\nPost: {post[0]}")
         
     
+def publish_post(user_name):
+    conn = sqlite3.connect("social_media.db")
+    user_id_query = "SELECT user_id FROM users WHERE username = ?"
+    user_id = conn.execute(user_id_query,(user_name,)).fetchone()[0]
+    
+    create_post_query = "INSERT INTO posts (user_id, post, posted_date) VALUES (?,?,?)"
+    
+    post_text = input("Write your post (leave blank to cancel): ").strip()
 
+    if not post_text:
+        print("Post cancelled.")
+        conn.close()
+        return
+
+    now = datetime.now()
+    
+    posted_date = f"{now.month}/{now.day}/{now.year}"
+
+    conn.execute(create_post_query, (user_id, post_text, posted_date))
+    conn.commit()
+    conn.close()
+    print("Post published!")
+
+
+def view_follows(user_name):
+    conn = sqlite3.connect("social_media.db")
+    user_id = conn.execute("SELECT user_id FROM users WHERE username = ?",
+                           (user_name,)).fetchone()[0]
+
+    
+    following = conn.execute(
+        """SELECT u.username, u.first_name, u.last_name
+           FROM followers f JOIN users u ON u.user_id = f.follow_id
+           WHERE f.user_id = ?""", (user_id,)).fetchall()
+
+    followers = conn.execute(
+        """SELECT u.username, u.first_name, u.last_name
+           FROM followers f JOIN users u ON u.user_id = f.user_id
+           WHERE f.follow_id = ?""", (user_id,)).fetchall()
+    conn.close()
+
+    print("\n______________FOLLOWING____________")
+    if not following:
+        print("You are not following anyone yet.")
+    for username, first, last in following:
+        print(f"{username} ({first} {last})")
+
+    print("\n______________FOLLOWERS____________")
+    if not followers:
+        print("You have no followers yet.")
+    for username, first, last in followers:
+        print(f"{username} ({first} {last})")
 
 
 
@@ -203,8 +254,12 @@ _________________MENU___________________
             case "3": 
                 view_posts(user_name)   
                 input("Press Enter to return to the menu...")
-            case "4": pass   
-            case "5": pass   
+            case "4":
+                publish_post(user_name)
+                input("Press Enter to return to the menu...")
+            case "5":
+                view_follows(user_name)
+                input("Press Enter to return to the menu...")
             case "6":
                 return
             case _:
