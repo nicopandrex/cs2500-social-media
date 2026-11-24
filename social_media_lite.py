@@ -232,6 +232,102 @@ def view_follows(user_name):
 
 
 
+def follow_user(user_name):
+    conn = sqlite3.connect("social_media.db")
+    user_id = conn.execute("SELECT user_id FROM users WHERE username = ?",
+                           (user_name,)).fetchone()[0]
+
+    target_name = input("Username to follow (leave blank to cancel): ").strip()
+    if not target_name:
+        print("Cancelled.")
+        conn.close()
+        return
+
+    target = conn.execute("SELECT user_id FROM users WHERE username = ?",
+                          (target_name,)).fetchone()
+    if target is None:
+        print("User not found.")
+    elif target[0] == user_id:
+        print("You can't follow yourself.")
+    elif conn.execute("SELECT 1 FROM followers WHERE user_id = ? AND follow_id = ?",
+                      (user_id, target[0])).fetchone():
+        print(f"You are already following {target_name}.")
+    else:
+        conn.execute("INSERT INTO followers (user_id, follow_id) VALUES (?, ?)",
+                     (user_id, target[0]))
+        conn.commit()
+        print(f"You are now following {target_name}.")
+    conn.close()
+
+
+def unfollow_user(user_name):
+    conn = sqlite3.connect("social_media.db")
+    user_id = conn.execute("SELECT user_id FROM users WHERE username = ?",
+                           (user_name,)).fetchone()[0]
+
+    target_name = input("Username to unfollow (leave blank to cancel): ").strip()
+    if not target_name:
+        print("Cancelled.")
+        conn.close()
+        return
+
+    target = conn.execute("SELECT user_id FROM users WHERE username = ?",
+                          (target_name,)).fetchone()
+    if target is None:
+        print("User not found.")
+    elif not conn.execute("SELECT 1 FROM followers WHERE user_id = ? AND follow_id = ?",
+                          (user_id, target[0])).fetchone():
+        print(f"You are not following {target_name}.")
+    else:
+        conn.execute("DELETE FROM followers WHERE user_id = ? AND follow_id = ?",
+                     (user_id, target[0]))
+        conn.commit()
+        print(f"You have unfollowed {target_name}.")
+    conn.close()
+
+
+def view_feed(user_name):
+    conn = sqlite3.connect("social_media.db")
+    user_id = conn.execute("SELECT user_id FROM users WHERE username = ?",
+                           (user_name,)).fetchone()[0]
+
+    posts = conn.execute(
+        """SELECT u.username, p.post, p.posted_date
+           FROM followers f
+           JOIN users u ON u.user_id = f.follow_id
+           JOIN posts p ON p.user_id = f.follow_id
+           WHERE f.user_id = ?""", (user_id,)).fetchall()
+    conn.close()
+
+
+    print("\n______________YOUR FEED____________")
+    if not posts:
+        print("Nothing here yet. Follow some people to see their posts.")
+    for username, text, date in posts:
+        print(f"\n{username} - {date}\n{text}")
+
+
+def follow_menu(user_name):
+    options = """
+_________________FOLLOW MENU____________
+1. Follow a User
+2. Unfollow a User
+3. Back to Menu
+"""
+    while True:
+        print(options)
+        selection = input("Input Selection (1-3): ").strip()
+        match selection:
+            case "1":
+                follow_user(user_name)
+            case "2":
+                unfollow_user(user_name)
+            case "3":
+                return
+            case _:
+                print("\nInvalid Selection")
+
+
 def menu(user_name):
     options = """
 _________________MENU___________________
@@ -240,37 +336,52 @@ _________________MENU___________________
 3. View Posts
 4. Publish Post
 5. View Followers and Following
-6. Log Out
+6. Follow / Unfollow Users
+7. View Feed
+8. Log Out
 """
     while True:
         print(options)
-        selection = input("Input Selection (1-6): ").strip()
-        match selection:
-            case "1":
-                view_info(user_name)
-                input("Press Enter to return to the menu...")
-            case "2":
-                user_name = update_info(user_name)
-            case "3": 
-                view_posts(user_name)   
-                input("Press Enter to return to the menu...")
-            case "4":
-                publish_post(user_name)
-                input("Press Enter to return to the menu...")
-            case "5":
-                view_follows(user_name)
-                input("Press Enter to return to the menu...")
-            case "6":
-                return
-            case _:
-                print("\nInvalid Selection")
+        selection = input("Input Selection (1-8): ").strip()
+        try:
+            match selection:
+                case "1":
+                    view_info(user_name)
+                    input("Press Enter to return to the menu...")
+                case "2":
+                    user_name = update_info(user_name)
+                case "3":
+                    view_posts(user_name)
+                    input("Press Enter to return to the menu...")
+                case "4":
+                    publish_post(user_name)
+                    input("Press Enter to return to the menu...")
+                case "5":
+                    view_follows(user_name)
+                    input("Press Enter to return to the menu...")
+                case "6":
+                    follow_menu(user_name)
+                case "7":
+                    view_feed(user_name)
+                    input("Press Enter to return to the menu...")
+                case "8":
+                    return
+                case _:
+                    print("\nInvalid Selection")
+        except sqlite3.Error as e:
+            # a database problem in one feature shouldn't kill the whole app
+            print(f"\nDatabase error: {e}. Returning to the menu.")
 
 
 #run loop
-login = Login()
-
-while True:
-    user_name = login.login_screen()
-    menu(user_name)
-    print("Logged out.\n")
+try:
+    login = Login()
+    while True:
+        user_name = login.login_screen()
+        menu(user_name)
+        print("Logged out.\n")
+except sqlite3.Error as e:
+    print(f"\nCould not use the database: {e}")
+except (KeyboardInterrupt, EOFError):
+    print("\nGoodbye!")
 
